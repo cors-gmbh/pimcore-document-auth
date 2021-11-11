@@ -1,0 +1,60 @@
+version: '3.4'
+
+networks:
+  cors_dev:
+    external: true
+
+services:
+  db:
+    image: mysql:8
+    working_dir: /application
+    container_name: dauth_db
+    networks:
+      - cors_dev
+    volumes:
+      - cors-dauth-database:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=ROOT
+      - MYSQL_DATABASE=pimcore
+      - MYSQL_USER=pimcore
+      - MYSQL_PASSWORD=pimcore
+
+  php:
+    image: pimcore/pimcore:PHP8.0-apache
+    container_name: dauth_php
+    networks:
+      - cors_dev
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.document_auth.rule=Host(`document-auth.localhost`)
+      - traefik.http.routers.document_auth.entrypoints=cors_dev
+      - traefik.http.routers.document_auth.tls=true
+      - traefik.http.services.document_auth.loadbalancer.server.port=80
+      - traefik.docker.network=cors_dev
+    volumes:
+      - .:/var/www/html:cached
+    depends_on:
+     - db
+
+  php-debug:
+    image: pimcore/pimcore:PHP8.0-apache-debug
+    container_name: dauth_php-debug
+    networks:
+      - cors_dev
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.document_auth_debug.rule=Host(`document-auth.localhost`)
+      - traefik.http.routers.document_auth_debug.entrypoints=cors_dev_debug
+      - traefik.http.routers.document_auth_debug.tls=true
+      - traefik.http.services.document_auth_debug.loadbalancer.server.port=80
+      - traefik.docker.network=cors_dev
+    volumes:
+      - .:/var/www/html:cached
+    depends_on:
+      - db
+    environment:
+      - PHP_DEBUG=1
+      - PHP_IDE_CONFIG="serverName=localhost"
+
+volumes:
+  cors-dauth-database:

@@ -1,0 +1,11 @@
+services:
+    CORS\Bundle\DocumentAuthBundle\Security\UserProvider:
+        arguments:
+            - '@Pimcore\Http\Request\Resolver\DocumentResolver'
+            - '@security.password_hasher_factory'
+
+    CORS\Bundle\DocumentAuthBundle\Security\RequestMatcher:
+        arguments:
+            - '@Pimcore\Http\Request\Resolver\DocumentResolver'
+            - '@Pimcore\Http\RequestHelper'
+

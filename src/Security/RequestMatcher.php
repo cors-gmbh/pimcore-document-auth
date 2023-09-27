@@ -17,8 +17,6 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Security;
 
-use AgroMicroBundle\Service\MicroConfigResolver;
-use AgroMicroBundle\Service\MicroSiteConfigNotFoundException;
 use Pimcore\Http\Request\Resolver\DocumentResolver;
 use Pimcore\Http\RequestHelper;
 use Symfony\Component\HttpFoundation\Request;
@@ -51,7 +49,7 @@ class RequestMatcher implements RequestMatcherInterface
             if ($document->getProperty('password_enabled')) {
                 return true;
             }
-        } catch (MicroSiteConfigNotFoundException $exception) {
+        } catch (\Exception $exception) {
             //Ignore and return false
         }
 

@@ -33,7 +33,7 @@ class RequestMatcher implements RequestMatcherInterface
         $this->requestHelper = $requestHelper;
     }
 
-    public function matches(Request $request)
+    public function matches(Request $request): bool
     {
         if ($this->requestHelper->isFrontendRequestByAdmin($request)) {
             return false;

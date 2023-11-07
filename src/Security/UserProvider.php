@@ -34,6 +34,12 @@ class UserProvider implements UserProviderInterface
     ) {
     }
 
+    public function loadUserByIdentifier(string $identifier): UserInterface
+    {
+
+        throw new \Exception('Not implemented yet.');
+    }
+
     public function loadUserByUsername($username)
     {
         $document = $this->documentResolver->getDocument();

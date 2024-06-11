@@ -44,3 +44,4 @@ var
 .env.local
 public/bundles
 config/local
+vendor

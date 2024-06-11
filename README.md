@@ -19,8 +19,10 @@ Simply use these properties
 ## Security Config
 ```yaml
 security:
-    encoders:
-        Symfony\Component\Security\Core\User\User: 'auto'
+    enable_authenticator_manager: true
+
+    password_hashers:
+      Symfony\Component\Security\Core\User\InMemoryUser: 'auto'
 
     providers:
         document_auth_provider:
@@ -32,4 +34,7 @@ security:
             http_basic:
                 realm: Site
                 provider: document_auth_provider
+
+    access_control:
+      - { path: ^/, role: ROLE_USER, attributes: {'_firewall_context': 'document_auth'}}
 ```

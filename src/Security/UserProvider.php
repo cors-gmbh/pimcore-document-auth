@@ -20,6 +20,7 @@ namespace CORS\Bundle\DocumentAuthBundle\Security;
 use Pimcore\Http\Request\Resolver\DocumentResolver;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationServiceException;
+use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\InMemoryUser;
 use Symfony\Component\Security\Core\User\User;
@@ -34,7 +35,7 @@ class UserProvider implements UserProviderInterface
     ) {
     }
 
-    public function loadUserByUsername($username)
+    public function loadUserByIdentifier(string $identifier): UserInterface
     {
         $document = $this->documentResolver->getDocument();
 
@@ -58,7 +59,7 @@ class UserProvider implements UserProviderInterface
         }
 
         if ($configuredUsername !== $username) {
-            throw new AuthenticationServiceException('Wrong Username');
+            throw new BadCredentialsException('Wrong Username');
         }
 
         $user = new InMemoryUser($username, $rawPassword, ['ROLE_USER']);
@@ -66,14 +67,12 @@ class UserProvider implements UserProviderInterface
         $hasher = $this->passwordHasherFactory->getPasswordHasher($user);
         $password = $hasher->hash($rawPassword, null);
 
-        $user->setPassword($password);
-
-        return $user;
+        return new InMemoryUser($username, $password, ['ROLE_USER']);
     }
 
     public function refreshUser(UserInterface $user)
     {
-        if (!$user instanceof User) {
+        if (!$user instanceof InMemoryUser) {
             throw new UnsupportedUserException(sprintf('Invalid user class "%s".', get_class($user)));
         }
 
@@ -82,6 +81,6 @@ class UserProvider implements UserProviderInterface
 
     public function supportsClass($class)
     {
-        return User::class === $class || is_subclass_of($class, User::class);
+        return InMemoryUser::class === $class;
     }
 }

@@ -58,16 +58,16 @@ class UserProvider implements UserProviderInterface
             throw new AuthenticationServiceException('Password Access disabled');
         }
 
-        if ($configuredUsername !== $username) {
+        if ($configuredUsername !== $identifier) {
             throw new BadCredentialsException('Wrong Username');
         }
 
-        $user = new InMemoryUser($username, $rawPassword, ['ROLE_USER']);
+        $user = new InMemoryUser($identifier, $rawPassword, ['ROLE_USER']);
 
         $hasher = $this->passwordHasherFactory->getPasswordHasher($user);
         $password = $hasher->hash($rawPassword, null);
 
-        return new InMemoryUser($username, $password, ['ROLE_USER']);
+        return new InMemoryUser($identifier, $password, ['ROLE_USER']);
     }
 
     public function refreshUser(UserInterface $user)

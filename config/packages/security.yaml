@@ -6,7 +6,7 @@ security:
             id: CORS\Bundle\DocumentAuthBundle\Security\UserProvider
 
     encoders:
-        Symfony\Component\Security\Core\User\User: 'auto'
+        Symfony\Component\Security\Core\User\InMemoryUser: 'auto'
 
     firewalls:
         dev:
@@ -58,6 +58,7 @@ security:
         - { path: ^/admin/login$, roles: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/admin/login/(login|lostpassword|deeplink|csrf-token)$, roles: IS_AUTHENTICATED_ANONYMOUSLY }
         - { path: ^/admin, roles: ROLE_PIMCORE_USER }
+        - { path: ^/, role: ROLE_USER, attributes: {'_firewall_context': 'document_auth'}}
 
     role_hierarchy:
         # Pimcore admin  // DO NOT CHANGE!

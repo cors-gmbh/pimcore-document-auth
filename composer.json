@@ -6,7 +6,10 @@
         "pimcore"
     ],
     "homepage": "http://www.cors.gmbh",
-    "license": "GPL-3.0-or-later",
+    "license": [
+        "GPL-3.0-or-later",
+        "MIT"
+    ],
     "authors": [
         {
             "name": "CORS GmbH",

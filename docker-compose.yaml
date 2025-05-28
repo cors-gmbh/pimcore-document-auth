@@ -1,60 +1,82 @@
-version: '3.4'
-
 networks:
   cors_dev:
     external: true
+  cors-document-auth:
+    external: false
 
 services:
   db:
     image: mysql:8
-    working_dir: /application
-    container_name: dauth_db
+    container_name: cors-document-auth
     networks:
       - cors_dev
+      - cors-document-auth
+    working_dir: /application
     volumes:
-      - cors-dauth-database:/var/lib/mysql
+      - cors-document-auth-database:/var/lib/mysql
+      - ./:/application
     environment:
       - MYSQL_ROOT_PASSWORD=ROOT
       - MYSQL_DATABASE=pimcore
       - MYSQL_USER=pimcore
       - MYSQL_PASSWORD=pimcore
 
-  php:
-    image: pimcore/pimcore:PHP8.0-apache
-    container_name: dauth_php
-    networks:
-      - cors_dev
+  nginx:
+    image: nginx:stable-alpine
+    container_name: cors-document-auth-nginx
     labels:
       - traefik.enable=true
-      - traefik.http.routers.document_auth.rule=Host(`document-auth.localhost`)
-      - traefik.http.routers.document_auth.entrypoints=cors_dev
-      - traefik.http.routers.document_auth.tls=true
-      - traefik.http.services.document_auth.loadbalancer.server.port=80
+      - traefik.http.routers.cors-document-auth.rule=HostRegexp(`cors-document-auth.localhost`)
+      - traefik.http.routers.cors-document-auth.entrypoints=cors_dev
+      - traefik.http.routers.cors-document-auth.tls=true
+      - traefik.http.services.cors-document-auth.loadbalancer.server.port=80
       - traefik.docker.network=cors_dev
+    links:
+      - php:fpm
+      - php-debug:fpm-debug
+    networks:
+      - cors_dev
+      - cors-document-auth
     volumes:
-      - .:/var/www/html:cached
+      - ./:/var/www/html:ro
+      - ./.docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-     - db
+      - php
+      - php-debug
 
-  php-debug:
-    image: pimcore/pimcore:PHP8.0-apache-debug
-    container_name: dauth_php-debug
+  php:
+    image: ghcr.io/cors-gmbh/pimcore-docker/php-fpm:8.3-alpine3.21-7.0-LATEST
+    command: 'php-fpm'
+    entrypoint: docker-php-entrypoint
+    links:
+      - db:database
     networks:
+      - cors-document-auth
       - cors_dev
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.document_auth_debug.rule=Host(`document-auth.localhost`)
-      - traefik.http.routers.document_auth_debug.entrypoints=cors_dev_debug
-      - traefik.http.routers.document_auth_debug.tls=true
-      - traefik.http.services.document_auth_debug.loadbalancer.server.port=80
-      - traefik.docker.network=cors_dev
-    volumes:
-      - .:/var/www/html:cached
     depends_on:
       - db
+    volumes:
+      - ./:/var/www/html:cached
     environment:
-      - PHP_DEBUG=1
-      - PHP_IDE_CONFIG="serverName=localhost"
+      - COMPOSER_AUTH=${COMPOSER_AUTH}
+
+  php-debug:
+    image: ghcr.io/cors-gmbh/pimcore-docker/php-fpm-debug:8.3-alpine3.21-7.0-LATEST
+    command: 'php-fpm'
+    entrypoint: xdebug-entrypoint
+    links:
+      - db:database
+    depends_on:
+      - db
+    volumes:
+      - ./:/var/www/html:cached
+    networks:
+      - cors-document-auth
+      - cors_dev
+    environment:
+      - PHP_IDE_CONFIG=serverName=localhost
+      - COMPOSER_AUTH=${COMPOSER_AUTH:-}
+
 
 volumes:
-  cors-dauth-database:
+  cors-document-auth-database:

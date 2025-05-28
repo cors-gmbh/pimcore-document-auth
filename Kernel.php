@@ -20,7 +20,7 @@ use Pimcore\Kernel as PimcoreKernel;
 
 class Kernel extends PimcoreKernel
 {
-    public function registerBundlesToCollection(BundleCollection $collection)
+    public function registerBundlesToCollection(BundleCollection $collection): void
     {
         $collection->addBundle(new \CORS\Bundle\DocumentAuthBundle\CORSDocumentAuthBundle());
     }

@@ -1,3 +1,7 @@
 imports:
     - { resource: services.yaml }
     - { resource: 'local/' }
+
+pimcore:
+    encryption:
+        secret: '%env(PIMCORE_ENCRYPTION_SECRET)%'

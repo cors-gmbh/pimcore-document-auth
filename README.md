@@ -1,6 +1,8 @@
 CORS Property Basic Auth
 --------
 
+> THIS BUNDLE IS DUAL LICENSED UNDER GPL-3.0 FOR PIMCORE 10 AND PIMCORE 11 AND MIT FOR PIMCORE 12 AND ABOVE.
+
 This bundles allows to add basic auth based on Properties on Pimcore Documents.
 
 Simply use these properties

@@ -269,7 +269,9 @@ return static function (ECSConfig $ecsConfig): void {
     $header = <<<EOT
 CORS GmbH
  
-This software is available under the GNU General Public License version 3 (GPLv3).
+This source file is available under two different licenses:
+ *  - GNU General Public License version 3 (GPLv3) for Pimcore 10 and 11
+ *  - MIT License (MIT) for Pimcore 12 and later
   
 @copyright  Copyright (c) CORS GmbH (https://www.cors.gmbh)
 @license    https://www.cors.gmbh/license GPLv3

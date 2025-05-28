@@ -2,17 +2,13 @@
 
 declare(strict_types=1);
 
-/**
- * CORS GmbH.
+/*
+ * CORS GmbH
  *
- * This source file is available under two different licenses:
- * - GNU General Public License version 3 (GPLv3)
- * - Pimcore Commercial License (PCL)
- * Full copyright and license information is available in
- * LICENSE.md which is distributed with this source code.
+ * This software is available under the GNU General Public License version 3 (GPLv3).
  *
  * @copyright  Copyright (c) CORS GmbH (https://www.cors.gmbh)
- * @license    https://www.cors.gmbh/license     GPLv3 and PCL
+ * @license    https://www.cors.gmbh/license GPLv3
  */
 
 namespace CORS\Bundle\DocumentAuthBundle\DependencyInjection;
@@ -27,7 +23,7 @@ final class CORSDocumentAuthExtension extends Extension
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configs = $this->processConfiguration($this->getConfiguration([], $container), $configs);
-        $loader = new YamlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+        $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
 
         $loader->load('services.yaml');
     }

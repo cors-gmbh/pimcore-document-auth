@@ -6,7 +6,7 @@
         "pimcore"
     ],
     "homepage": "http://www.cors.gmbh",
-    "license": "proprietary",
+    "license": "GPL-3.0-or-later",
     "authors": [
         {
             "name": "CORS GmbH",
@@ -20,7 +20,7 @@
         "pimcore/pimcore": "^10.0 || ^11.0"
     },
     "require-dev": {
-        "symplify/easy-coding-standard": "^9.4"
+        "symplify/easy-coding-standard": "^11.1"
     },
     "autoload": {
         "psr-4": {

@@ -2,17 +2,13 @@
 
 declare(strict_types=1);
 
-/**
- * CORS GmbH.
+/*
+ * CORS GmbH
  *
- * This source file is available under two different licenses:
- * - GNU General Public License version 3 (GPLv3)
- * - Pimcore Commercial License (PCL)
- * Full copyright and license information is available in
- * LICENSE.md which is distributed with this source code.
+ * This software is available under the GNU General Public License version 3 (GPLv3).
  *
  * @copyright  Copyright (c) CORS GmbH (https://www.cors.gmbh)
- * @license    https://www.cors.gmbh/license     GPLv3 and PCL
+ * @license    https://www.cors.gmbh/license GPLv3
  */
 
 namespace CORS\Bundle\DocumentAuthBundle\Security;
@@ -23,7 +19,6 @@ use Symfony\Component\Security\Core\Exception\AuthenticationServiceException;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\InMemoryUser;
-use Symfony\Component\Security\Core\User\User;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
@@ -31,7 +26,7 @@ class UserProvider implements UserProviderInterface
 {
     public function __construct(
         private DocumentResolver $documentResolver,
-        private PasswordHasherFactoryInterface $passwordHasherFactory
+        private PasswordHasherFactoryInterface $passwordHasherFactory,
     ) {
     }
 

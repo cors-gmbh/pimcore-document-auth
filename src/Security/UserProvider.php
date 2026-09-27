@@ -5,12 +5,13 @@ declare(strict_types=1);
 /*
  * CORS GmbH
  *
- * This source file is available under two different licenses:
- *  *  - GNU General Public License version 3 (GPLv3) for Pimcore 10 and 11
- *  *  - MIT License (MIT) for Pimcore 12 and later
+ * This source file is available under the MIT license
+ *
+ * Full copyright and license information is available in
+ * LICENSE.md which is distributed with this source code.
  *
  * @copyright  Copyright (c) CORS GmbH (https://www.cors.gmbh)
- * @license    https://www.cors.gmbh/license GPLv3
+ * @license    https://opensource.org/license/mit MIT
  */
 
 namespace CORS\Bundle\DocumentAuthBundle\Security;
@@ -20,11 +21,15 @@ use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationServiceException;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
+use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Core\User\InMemoryUser;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
-class UserProvider implements UserProviderInterface
+/**
+ * @implements UserProviderInterface<InMemoryUser>
+ */
+final readonly class UserProvider implements UserProviderInterface
 {
     public function __construct(
         private DocumentResolver $documentResolver,
@@ -36,18 +41,18 @@ class UserProvider implements UserProviderInterface
     {
         $document = $this->documentResolver->getDocument();
 
-        if (!$document) {
-            throw new \Exception('No Document found');
+        if (null === $document) {
+            throw new UserNotFoundException('No Document found');
         }
 
         $rawPassword = $document->getProperty('password_password');
         $configuredUsername = $document->getProperty('password_username');
 
-        if (!$rawPassword) {
+        if (!is_string($rawPassword) || '' === $rawPassword) {
             throw new AuthenticationServiceException('Password not configured!');
         }
 
-        if (!$configuredUsername) {
+        if (!is_string($configuredUsername) || '' === $configuredUsername) {
             throw new AuthenticationServiceException('Username not configured');
         }
 
@@ -62,21 +67,21 @@ class UserProvider implements UserProviderInterface
         $user = new InMemoryUser($identifier, $rawPassword, ['ROLE_USER']);
 
         $hasher = $this->passwordHasherFactory->getPasswordHasher($user);
-        $password = $hasher->hash($rawPassword, null);
+        $password = $hasher->hash($rawPassword);
 
         return new InMemoryUser($identifier, $password, ['ROLE_USER']);
     }
 
-    public function refreshUser(UserInterface $user)
+    public function refreshUser(UserInterface $user): UserInterface
     {
         if (!$user instanceof InMemoryUser) {
-            throw new UnsupportedUserException(sprintf('Invalid user class "%s".', get_class($user)));
+            throw new UnsupportedUserException(sprintf('Invalid user class "%s".', $user::class));
         }
 
         return $user;
     }
 
-    public function supportsClass($class)
+    public function supportsClass(string $class): bool
     {
         return InMemoryUser::class === $class;
     }

@@ -16,9 +16,12 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Tests\Functional;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use Pimcore\Model\Document;
 use Pimcore\Model\Document\Page;
+use Pimcore\Model\User;
 use Pimcore\Test\WebTestCase;
+use Pimcore\Tool\Authentication;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -30,7 +33,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class DocumentAuthTest extends WebTestCase
 {
+    private const string ADMIN_PASSWORD = 'document-auth-test-password';
+
     private static string $root = '';
+
+    private static string $adminUsername = '';
 
     private KernelBrowser $client;
 
@@ -59,6 +66,15 @@ final class DocumentAuthTest extends WebTestCase
             'password_template' => 'document-auth/customer.html.twig',
         ] + self::credentials('max', 'secret'));
 
+        self::$adminUsername = 'document-auth-test-' . bin2hex(random_bytes(4));
+        $admin = new User();
+        $admin->setName(self::$adminUsername);
+        $admin->setPassword(Authentication::getPasswordHash(self::$adminUsername, self::ADMIN_PASSWORD));
+        $admin->setAdmin(true);
+        $admin->setActive(true);
+        $admin->setParentId(0);
+        $admin->save();
+
         self::ensureKernelShutdown();
     }
 
@@ -70,6 +86,7 @@ final class DocumentAuthTest extends WebTestCase
 
         self::bootKernel();
         Document::getByPath(self::$root)?->delete();
+        User::getByName(self::$adminUsername)?->delete();
         self::ensureKernelShutdown();
         self::$root = '';
     }
@@ -200,6 +217,40 @@ final class DocumentAuthTest extends WebTestCase
         } finally {
             $this->changePassword('/form', 'secret');
         }
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function adminParameters(): iterable
+    {
+        foreach (['pimcore_editmode', 'pimcore_preview', 'pimcore_admin', 'pimcore_object_preview', 'pimcore_version'] as $parameter) {
+            yield $parameter => [$parameter];
+        }
+    }
+
+    #[DataProvider('adminParameters')]
+    public function testAdminParametersDoNotBypassProtectionWithoutAdminSession(string $parameter): void
+    {
+        $this->client->request('GET', $this->url('/form') . '?' . $parameter . '=1');
+
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+    }
+
+    public function testStudioPreviewOfLoggedInAdminIsNotProtected(): void
+    {
+        $this->client->jsonRequest('POST', '/pimcore-studio/api/login', [
+            'username' => self::$adminUsername,
+            'password' => self::ADMIN_PASSWORD,
+        ]);
+        self::assertResponseIsSuccessful();
+
+        $this->client->request('GET', $this->url('/form') . '?pimcore_preview=1');
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+
+        // Without the preview parameter the admin session does not open the document
+        $this->client->request('GET', $this->url('/form'));
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
     public function testFormModeUsesTemplateOfDocumentProperty(): void

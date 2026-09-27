@@ -1,0 +1,15 @@
+{# Dev harness only: example of a customer CI login, used via the property password_template #}
+{% extends '@CORSDocumentAuth/login.html.twig' %}
+
+{% block theme %}
+    :root {
+        --document-auth-primary: #e30613;
+        --document-auth-background: #1d1d1b;
+        --document-auth-radius: 0;
+        --document-auth-font: Georgia, serif;
+    }
+{% endblock %}
+
+{% block logo %}
+    <strong style="display:block;margin-bottom:24px;color:#e30613;letter-spacing:.2em">CUSTOMER</strong>
+{% endblock %}

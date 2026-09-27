@@ -1,2 +1,12 @@
 parameters:
     secret: QbtYa7j8axIM8cdJ4PFDRxL4kPYtHQSp/CmCrpM1NJM=
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # Dev harness only: frontend controller to render documents
+    App\Controller\:
+        resource: '../dev/Controller'
+        tags: ['controller.service_arguments']

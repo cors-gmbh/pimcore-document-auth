@@ -1,0 +1,5 @@
+cors_document_auth:
+    title: 'Geschützter Bereich'
+    username: 'Benutzername'
+    password: 'Passwort'
+    submit: 'Anmelden'

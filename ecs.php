@@ -22,7 +22,7 @@ use Symplify\EasyCodingStandard\Config\ECSConfig;
 return static function (ECSConfig $ecsConfig): void {
     $ecsConfig->import('vendor/coreshop/test-setup/ecs.php');
     $ecsConfig->parallel();
-    $ecsConfig->paths(['src']);
+    $ecsConfig->paths(['src', 'tests']);
 
     $header = <<<EOT
 CORS GmbH

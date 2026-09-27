@@ -2,10 +2,20 @@ services:
     CORS\Bundle\DocumentAuthBundle\Security\UserProvider:
         arguments:
             - '@Pimcore\Http\Request\Resolver\DocumentResolver'
-            - '@security.password_hasher_factory'
+            - '%kernel.secret%'
 
     CORS\Bundle\DocumentAuthBundle\Security\RequestMatcher:
         arguments:
             - '@Pimcore\Http\Request\Resolver\DocumentResolver'
             - '@Pimcore\Http\RequestHelper'
 
+    CORS\Bundle\DocumentAuthBundle\Security\DocumentAuthenticator:
+        arguments:
+            - '@CORS\Bundle\DocumentAuthBundle\Security\UserProvider'
+            - '@Pimcore\Http\Request\Resolver\DocumentResolver'
+            - '@twig'
+            - '@?security.csrf.token_manager'
+            - '%cors_document_auth.mode%'
+            - '%cors_document_auth.realm%'
+            - '%cors_document_auth.form.template%'
+            - '%cors_document_auth.form.csrf_protection%'

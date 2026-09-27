@@ -1,0 +1,5 @@
+cors_document_auth:
+    title: 'Protected area'
+    username: 'Username'
+    password: 'Password'
+    submit: 'Log in'

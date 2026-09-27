@@ -18,6 +18,7 @@ namespace CORS\Bundle\DocumentAuthBundle\Security;
 
 use Pimcore\Http\Request\Resolver\DocumentResolver;
 use Pimcore\Http\RequestHelper;
+use Pimcore\Tool\Authentication;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestMatcherInterface;
 
@@ -31,7 +32,11 @@ final readonly class RequestMatcher implements RequestMatcherInterface
 
     public function matches(Request $request): bool
     {
-        if ($this->requestHelper->isFrontendRequestByAdmin($request)) {
+        // Editmode and preview of Pimcore Studio. The parameters alone are no proof, anyone can add
+        // them to the URL: the request also needs a logged in Pimcore user.
+        if ($this->requestHelper->isFrontendRequestByAdmin($request) &&
+            null !== Authentication::authenticateSession($request)
+        ) {
             return false;
         }
 

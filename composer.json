@@ -3,13 +3,12 @@
     "type": "pimcore-bundle",
     "description": "CORS - Document Auth",
     "keywords": [
-        "pimcore"
+        "pimcore",
+        "basic-auth",
+        "documents"
     ],
-    "homepage": "http://www.cors.gmbh",
-    "license": [
-        "GPL-3.0-or-later",
-        "MIT"
-    ],
+    "homepage": "https://www.cors.gmbh",
+    "license": "MIT",
     "authors": [
         {
             "name": "CORS GmbH",
@@ -19,13 +18,15 @@
         }
     ],
     "require": {
-        "php": ">=8.0",
-        "pimcore/pimcore": "^10.0 || ^11.0 || ^12.0"
+        "php": "~8.4.0 || ~8.5.0",
+        "pimcore/pimcore": "^2026.2"
     },
     "require-dev": {
-        "symplify/easy-coding-standard": "^11.1",
-        "symfony/dotenv": "^6.4",
-        "pimcore/admin-ui-classic-bundle": "^2.0"
+        "coreshop/test-setup": "dev-main",
+        "symfony/runtime": "^7.4",
+        "symfony/dotenv": "^7.0",
+        "pimcore/studio-backend-bundle": "^2026.1",
+        "pimcore/studio-ui-bundle": "^2026.2"
     },
     "autoload": {
         "psr-4": {
@@ -35,11 +36,15 @@
     "autoload-dev": {
         "classmap": [
             "Kernel.php"
-        ]
+        ],
+        "psr-4": {
+            "App\\": "dev",
+            "Pimcore\\Model\\DataObject\\": "var/classes/DataObject"
+        }
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "1.0-dev"
+            "dev-2026.x": "2026.1.x-dev"
         },
         "pimcore": {
             "bundles": [
@@ -51,7 +56,8 @@
     "prefer-stable": true,
     "config": {
         "allow-plugins": {
-            "php-http/discovery": true
+            "php-http/discovery": true,
+            "symfony/runtime": true
         }
     }
 }

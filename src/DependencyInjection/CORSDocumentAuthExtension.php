@@ -29,6 +29,9 @@ final class CORSDocumentAuthExtension extends Extension implements PrependExtens
     /**
      * Predefined document properties, so editors can pick them in the properties tab.
      */
+    // Pimcore Studio requires creation and modification date for every predefined property
+    private const int PREDEFINED_PROPERTIES_DATE = 1790467200;
+
     public const array PREDEFINED_PROPERTIES = [
         'cors_document_auth_enabled' => [
             'name' => 'Document Auth: enabled',
@@ -102,7 +105,13 @@ final class CORSDocumentAuthExtension extends Extension implements PrependExtens
         $container->prependExtensionConfig('pimcore', [
             'properties' => [
                 'predefined' => [
-                    'definitions' => self::PREDEFINED_PROPERTIES,
+                    'definitions' => array_map(
+                        static fn (array $definition): array => $definition + [
+                            'creationDate' => self::PREDEFINED_PROPERTIES_DATE,
+                            'modificationDate' => self::PREDEFINED_PROPERTIES_DATE,
+                        ],
+                        self::PREDEFINED_PROPERTIES,
+                    ),
                 ],
             ],
         ]);

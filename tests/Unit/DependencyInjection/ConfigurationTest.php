@@ -92,6 +92,9 @@ final class ConfigurationTest extends TestCase
         foreach ($definitions as $definition) {
             self::assertSame('document', $definition['ctype']);
             self::assertTrue($definition['inheritable']);
+            // Pimcore Studio fails to list predefined properties without dates
+            self::assertIsInt($definition['creationDate']);
+            self::assertIsInt($definition['modificationDate']);
         }
     }
 

@@ -1,17 +1,31 @@
 services:
-    CORS\Bundle\DocumentAuthBundle\Security\UserProvider:
+    CORS\Bundle\DocumentAuthBundle\Config\AuthConfigResolver:
+        arguments:
+            - !tagged_iterator cors_document_auth.config_provider
+
+    CORS\Bundle\DocumentAuthBundle\Config\DocumentPropertyAuthConfigProvider:
         arguments:
             - '@Pimcore\Http\Request\Resolver\DocumentResolver'
+        tags:
+            - { name: cors_document_auth.config_provider, priority: 0 }
+
+    CORS\Bundle\DocumentAuthBundle\Security\PasswordHashVerifier: ~
+
+    CORS\Bundle\DocumentAuthBundle\Security\UserProvider:
+        arguments:
+            - '@CORS\Bundle\DocumentAuthBundle\Config\AuthConfigResolver'
+            - '@request_stack'
             - '%kernel.secret%'
 
     CORS\Bundle\DocumentAuthBundle\Security\RequestMatcher:
         arguments:
-            - '@Pimcore\Http\Request\Resolver\DocumentResolver'
+            - '@CORS\Bundle\DocumentAuthBundle\Config\AuthConfigResolver'
             - '@Pimcore\Http\RequestHelper'
 
     CORS\Bundle\DocumentAuthBundle\Security\DocumentAuthenticator:
         arguments:
             - '@CORS\Bundle\DocumentAuthBundle\Security\UserProvider'
+            - '@CORS\Bundle\DocumentAuthBundle\Config\AuthConfigResolver'
             - '@Pimcore\Http\Request\Resolver\DocumentResolver'
             - '@twig'
             - '@?security.csrf.token_manager'

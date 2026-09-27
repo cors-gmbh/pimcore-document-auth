@@ -16,11 +16,13 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Tests\Functional;
 
+use CORS\Bundle\DocumentAuthBundle\Tests\Functional\Fixtures\SiteAuthConfigProvider;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
- * The dev harness kernel with the Symfony test client and a mock session storage. The harness is
+ * The dev harness kernel with the Symfony test client, a mock session storage and a custom config
+ * provider. The harness is
  * used instead of the "test" environment, because it holds the Pimcore product registration.
  */
 final class FunctionalKernel extends \Kernel
@@ -40,6 +42,9 @@ final class FunctionalKernel extends \Kernel
                 'profiler' => ['enabled' => false],
                 'session' => ['storage_factory_id' => 'session.storage.factory.mock_file'],
             ]);
+
+            // Registered like a project would: autoconfigure tags it as config provider
+            $container->register(SiteAuthConfigProvider::class)->setAutoconfigured(true);
         });
     }
 }

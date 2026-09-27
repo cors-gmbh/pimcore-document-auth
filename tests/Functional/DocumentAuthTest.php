@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Tests\Functional;
 
+use CORS\Bundle\DocumentAuthBundle\Tests\Functional\Fixtures\SiteAuthConfigProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Pimcore\Model\Document;
 use Pimcore\Model\Document\Page;
@@ -61,6 +62,9 @@ final class DocumentAuthTest extends WebTestCase
         self::createPage($form->getId(), 'child');
 
         self::createPage($root->getId(), 'other', ['password_mode' => 'form'] + self::credentials('anna', 'other'));
+        // Protected by SiteAuthConfigProvider, not by properties
+        self::createPage($root->getId(), 'site-config');
+
         self::createPage($root->getId(), 'customer', [
             'password_mode' => 'form',
             'password_template' => 'document-auth/customer.html.twig',
@@ -217,6 +221,27 @@ final class DocumentAuthTest extends WebTestCase
         } finally {
             $this->changePassword('/form', 'secret');
         }
+    }
+
+    public function testCustomProviderProtectsDocumentWithHashedPassword(): void
+    {
+        $this->client->request('GET', $this->url('/site-config'));
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+        self::assertSelectorExists('form.document-auth');
+
+        $this->login('/site-config', SiteAuthConfigProvider::USERNAME, 'wrong');
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
+
+        $this->login('/site-config', SiteAuthConfigProvider::USERNAME, SiteAuthConfigProvider::PASSWORD);
+        self::assertResponseRedirects($this->url('/site-config'));
+
+        $this->client->followRedirect();
+        self::assertResponseStatusCodeSame(Response::HTTP_OK);
+        self::assertSelectorTextContains('strong', SiteAuthConfigProvider::USERNAME);
+
+        // The session of the site does not open documents protected by properties
+        $this->client->request('GET', $this->url('/form'));
+        self::assertResponseStatusCodeSame(Response::HTTP_UNAUTHORIZED);
     }
 
     /**

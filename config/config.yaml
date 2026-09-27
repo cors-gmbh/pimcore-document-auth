@@ -5,6 +5,14 @@ imports:
 
 
 parameters:
+    # Registration values come from .env.local (dev stack, instance registered at
+    # license.pimcore.com) or from the repository secrets (CI, written to .env.local by
+    # php-test). Pimcore refuses to boot without them; the empty defaults only keep the
+    # container compilable when the variables are absent.
+    env(PIMCORE_ENCRYPTION_SECRET): ''
+    env(PIMCORE_INSTANCE_IDENTIFIER): ''
+    env(PIMCORE_PRODUCT_KEY): ''
+
     env(DATABASE_DRIVER): pdo_mysql
     env(DATABASE_HOST): ''
     env(DATABASE_PORT): ''

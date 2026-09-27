@@ -16,7 +16,7 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Security;
 
-use Pimcore\Http\Request\Resolver\DocumentResolver;
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfigResolver;
 use Pimcore\Http\RequestHelper;
 use Pimcore\Tool\Authentication;
 use Symfony\Component\HttpFoundation\Request;
@@ -25,7 +25,7 @@ use Symfony\Component\HttpFoundation\RequestMatcherInterface;
 final readonly class RequestMatcher implements RequestMatcherInterface
 {
     public function __construct(
-        private DocumentResolver $documentResolver,
+        private AuthConfigResolver $configResolver,
         private RequestHelper $requestHelper,
     ) {
     }
@@ -40,12 +40,6 @@ final readonly class RequestMatcher implements RequestMatcherInterface
             return false;
         }
 
-        try {
-            $document = $this->documentResolver->getDocument($request);
-        } catch (\Exception) {
-            return false;
-        }
-
-        return null !== $document && (bool) $document->getProperty('password_enabled');
+        return null !== $this->configResolver->resolve($request);
     }
 }

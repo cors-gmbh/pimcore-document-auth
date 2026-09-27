@@ -40,8 +40,28 @@ atlassian-ide-plugin.xml
 .project
 Thumbs.db
 phpda.html
-var
+# --- dev harness ---
+# var is generated, but PHPStan (Pimcore extension) needs var/classes/DataObject in CI
+/var/*
+!/var/classes
+/var/classes/*
+!/var/classes/DataObject
+/var/classes/DataObject/*
+!/var/classes/DataObject/.gitkeep
+/public/var
 .env.local
 public/bundles
-config/local
+web/bundles
+# config.yaml imports local/*.yaml; the kernel fails without the directory in CI
+/config/local/*
+!/config/local/.gitkeep
+app/config/local
 vendor
+supervisord.pid
+node_modules
+assets/@mf-types
+assets/dist
+# dev environment only, the bundle itself must not pin its PHP dependencies
+/composer.lock
+/.phpunit.cache/
+config/reference.php

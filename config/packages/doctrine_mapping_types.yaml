@@ -1,0 +1,6 @@
+doctrine:
+    dbal:
+        connections:
+            default:
+                mapping_types:
+                    bit: boolean

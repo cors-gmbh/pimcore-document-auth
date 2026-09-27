@@ -1,7 +1,4 @@
 security:
-    password_hashers:
-        Symfony\Component\Security\Core\User\InMemoryUser: 'auto'
-
     providers:
         pimcore_admin:
             id: Pimcore\Security\User\UserProvider
@@ -22,12 +19,12 @@ security:
         # Pimcore Studio firewall
         pimcore_studio: '%pimcore_studio_backend.firewall_settings%'
 
-        # Basic auth for documents with the password_enabled property
+        # Auth for documents with the password_enabled property (mode: cors_document_auth.mode)
         document_auth:
             request_matcher: CORS\Bundle\DocumentAuthBundle\Security\RequestMatcher
-            http_basic:
-                realm: Site
-                provider: document_auth_provider
+            provider: document_auth_provider
+            custom_authenticators:
+                - CORS\Bundle\DocumentAuthBundle\Security\DocumentAuthenticator
 
     access_control:
         # Pimcore Studio API  // DO NOT CHANGE!

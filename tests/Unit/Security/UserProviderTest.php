@@ -16,10 +16,12 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Tests\Unit\Security;
 
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfig;
 use CORS\Bundle\DocumentAuthBundle\Security\DocumentUser;
 use CORS\Bundle\DocumentAuthBundle\Security\UserProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Pimcore\Model\Document\Page;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Exception\AuthenticationServiceException;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
@@ -53,7 +55,6 @@ final class UserProviderTest extends DocumentTestCase
         yield 'no password' => [['password_enabled' => true, 'password_username' => 'max']];
         yield 'empty password' => [['password_enabled' => true, 'password_username' => 'max', 'password_password' => '']];
         yield 'no username' => [['password_enabled' => true, 'password_password' => 'secret']];
-        yield 'disabled' => [['password_enabled' => false, 'password_username' => 'max', 'password_password' => 'secret']];
     }
 
     /**
@@ -65,6 +66,48 @@ final class UserProviderTest extends DocumentTestCase
         $this->expectException(AuthenticationServiceException::class);
 
         $this->createProvider($this->createDocument($properties))->loadUserByIdentifier('max');
+    }
+
+    public function testThrowsForUnprotectedDocument(): void
+    {
+        $this->expectException(UserNotFoundException::class);
+
+        $this->createProvider($this->createProtectedDocument(properties: ['password_enabled' => false]))
+            ->loadUserByIdentifier('max')
+        ;
+    }
+
+    public function testThrowsWithoutRequest(): void
+    {
+        $this->expectException(UserNotFoundException::class);
+
+        (new UserProvider($this->createConfigResolver($this->createProtectedDocument()), new RequestStack(), 'kernel-secret'))
+            ->loadUserByIdentifier('max')
+        ;
+    }
+
+    public function testLoadsUserWithHashedPasswordFromProvider(): void
+    {
+        $hash = password_hash('secret', \PASSWORD_BCRYPT);
+        $configResolver = $this->createConfigResolver(null, $this->createFixedProvider(new AuthConfig('max', $hash, true)));
+
+        $user = $this->createUserProvider($configResolver)->loadUserByIdentifier('max');
+
+        self::assertSame($hash, $user->getPassword());
+        self::assertSame(DocumentUser::PASSWORD_HASHER_HASHED, $user->getPasswordHasherName());
+        self::assertSame(hash_hmac('sha256', "max\0" . $hash, 'kernel-secret'), $user->getFingerprint());
+    }
+
+    public function testProviderWithHigherPriorityWins(): void
+    {
+        $configResolver = $this->createConfigResolver(
+            $this->createProtectedDocument('max', 'secret'),
+            $this->createFixedProvider(new AuthConfig('site', 'site-secret')),
+        );
+
+        $this->expectException(BadCredentialsException::class);
+
+        $this->createUserProvider($configResolver)->loadUserByIdentifier('max');
     }
 
     public function testThrowsForWrongUsername(): void
@@ -135,7 +178,7 @@ final class UserProviderTest extends DocumentTestCase
 
     private function createProvider(?Page $document): UserProvider
     {
-        return new UserProvider($this->createResolver($document), 'kernel-secret');
+        return $this->createUserProvider($this->createConfigResolver($document));
     }
 
     /**

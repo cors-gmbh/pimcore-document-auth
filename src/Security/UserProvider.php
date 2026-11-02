@@ -16,7 +16,8 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Security;
 
-use Pimcore\Http\Request\Resolver\DocumentResolver;
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfigResolver;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\AuthenticationServiceException;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
@@ -32,7 +33,8 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
 final readonly class UserProvider implements UserProviderInterface
 {
     public function __construct(
-        private DocumentResolver $documentResolver,
+        private AuthConfigResolver $configResolver,
+        private RequestStack $requestStack,
         #[\SensitiveParameter]
         private string $secret,
     ) {
@@ -40,35 +42,30 @@ final readonly class UserProvider implements UserProviderInterface
 
     public function loadUserByIdentifier(string $identifier): DocumentUser
     {
-        $document = $this->documentResolver->getDocument();
+        $request = $this->requestStack->getCurrentRequest();
+        $config = null !== $request ? $this->configResolver->resolve($request) : null;
 
-        if (null === $document) {
-            throw new UserNotFoundException('No Document found');
+        if (null === $config) {
+            throw new UserNotFoundException('Request is not protected');
         }
 
-        $rawPassword = $document->getProperty('password_password');
-        $configuredUsername = $document->getProperty('password_username');
-
-        if (!is_string($rawPassword) || '' === $rawPassword) {
+        if (null === $config->password || '' === $config->password) {
             throw new AuthenticationServiceException('Password not configured!');
         }
 
-        if (!is_string($configuredUsername) || '' === $configuredUsername) {
+        if (null === $config->username || '' === $config->username) {
             throw new AuthenticationServiceException('Username not configured');
         }
 
-        if (!$document->getProperty('password_enabled')) {
-            throw new AuthenticationServiceException('Password Access disabled');
-        }
-
-        if ($configuredUsername !== $identifier) {
+        if ($config->username !== $identifier) {
             throw new BadCredentialsException('Wrong Username');
         }
 
         return new DocumentUser(
-            $configuredUsername,
-            $rawPassword,
-            hash_hmac('sha256', $configuredUsername . "\0" . $rawPassword, $this->secret),
+            $config->username,
+            $config->password,
+            hash_hmac('sha256', $config->username . "\0" . $config->password, $this->secret),
+            $config->passwordHashed,
         );
     }
 
@@ -86,12 +83,12 @@ final readonly class UserProvider implements UserProviderInterface
         try {
             $currentUser = $this->loadUserByIdentifier($user->getUserIdentifier());
         } catch (AuthenticationException $exception) {
-            throw $this->createUserNotFound($user, 'Document credentials not valid anymore', $exception);
+            throw $this->createUserNotFound($user, 'Credentials not valid anymore', $exception);
         }
 
-        // The session belongs to a document with other (or changed) credentials
+        // The session belongs to a request with other (or changed) credentials
         if (!$user->isEqualTo($currentUser)) {
-            throw $this->createUserNotFound($user, 'Document credentials do not match the session');
+            throw $this->createUserNotFound($user, 'Credentials do not match the session');
         }
 
         return $currentUser;

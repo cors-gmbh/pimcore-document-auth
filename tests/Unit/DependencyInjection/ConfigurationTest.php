@@ -16,9 +16,11 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Tests\Unit\DependencyInjection;
 
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfigProviderInterface;
 use CORS\Bundle\DocumentAuthBundle\DependencyInjection\Configuration;
 use CORS\Bundle\DocumentAuthBundle\DependencyInjection\CORSDocumentAuthExtension;
 use CORS\Bundle\DocumentAuthBundle\Security\DocumentUser;
+use CORS\Bundle\DocumentAuthBundle\Security\PasswordHashVerifier;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
@@ -71,9 +73,23 @@ final class ConfigurationTest extends TestCase
         (new CORSDocumentAuthExtension())->prepend($container);
 
         self::assertSame(
-            [['password_hashers' => [DocumentUser::PASSWORD_HASHER => ['algorithm' => 'plaintext']]]],
+            [['password_hashers' => [
+                DocumentUser::PASSWORD_HASHER => ['algorithm' => 'plaintext'],
+                DocumentUser::PASSWORD_HASHER_HASHED => ['id' => PasswordHashVerifier::class],
+            ]]],
             $container->getExtensionConfig('security'),
         );
+    }
+
+    public function testExtensionAutoconfiguresConfigProviders(): void
+    {
+        $container = new ContainerBuilder();
+        (new CORSDocumentAuthExtension())->load([], $container);
+
+        $autoconfigured = $container->getAutoconfiguredInstanceof();
+
+        self::assertArrayHasKey(AuthConfigProviderInterface::class, $autoconfigured);
+        self::assertArrayHasKey(AuthConfigProviderInterface::TAG, $autoconfigured[AuthConfigProviderInterface::class]->getTags());
     }
 
     public function testExtensionRegistersPredefinedDocumentProperties(): void

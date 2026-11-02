@@ -4,8 +4,9 @@ CORS Document Auth
 > This bundle is released under the [MIT license](LICENSE.md).
 > The 2026.x line supports Pimcore 2026 only. For Pimcore 10–12 use the `12.x` branch.
 
-This bundle protects Pimcore documents with a username and password based on document properties,
-either with HTTP basic auth (default) or with a login form.
+This bundle protects Pimcore documents with a username and password based on document properties
+(or [your own source](#custom-credential-sources)), either with HTTP basic auth (default) or with a
+login form.
 
 Set these properties on a document. The bundle ships them as predefined properties ("Document
 Auth: …"), so they can be picked in the properties tab of Pimcore Studio:
@@ -75,6 +76,55 @@ can only fill with one set of credentials. In `form` mode the login is kept in t
 The mode can be set per environment, e.g. with a `when@staging:` block, and per document with the
 property `password_mode` (`basic` or `form`, inheritable like the other properties). Other values
 fall back to the configured mode.
+
+## Custom Credential Sources
+
+By default the document properties above protect a document. Projects that keep credentials
+elsewhere (e.g. in a site config data object) add their own source by implementing
+`AuthConfigProviderInterface`. Providers are autoconfigured and asked by priority; the first one
+returning an `AuthConfig` wins, `null` hands the request to the next provider. The document
+properties are the default provider with priority `0`.
+
+```php
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfig;
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfigProviderInterface;
+use Pimcore\Http\Request\Resolver\DocumentResolver;
+use Symfony\Component\DependencyInjection\Attribute\AsTaggedItem;
+use Symfony\Component\HttpFoundation\Request;
+
+#[AsTaggedItem(priority: 10)]
+final readonly class SiteConfigAuthConfigProvider implements AuthConfigProviderInterface
+{
+    public function __construct(private DocumentResolver $documentResolver)
+    {
+    }
+
+    public function getConfig(Request $request): ?AuthConfig
+    {
+        $siteConfig = $this->documentResolver->getDocument($request)?->getProperty('site_config');
+
+        if (!$siteConfig instanceof SiteConfig || !$siteConfig->getPasswordEnabled()) {
+            return null;
+        }
+
+        return new AuthConfig(
+            username: $siteConfig->getUsername(),
+            password: $siteConfig->getPassword(),
+            passwordHashed: true,           // Pimcore password field: password_hash() hash
+            mode: $siteConfig->getLoginMode(), // optional: "basic" / "form", null = configured default
+            template: null,                 // optional: login template, null = configured template
+        );
+    }
+}
+```
+
+- `passwordHashed: false` compares a raw password, `true` verifies a `password_hash()` hash, the
+  way Pimcore password fields store them.
+- A returned config with missing username or password keeps the request protected, but no login
+  succeeds.
+- The provider receives the request, so it can also protect requests without a document.
+- A login is bound to the username and stored password of its source: it does not open requests
+  with other credentials and ends when the password changes.
 
 ## Login Template
 

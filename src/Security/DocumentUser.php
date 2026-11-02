@@ -22,7 +22,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
- * User authenticated against the credentials of a document. The fingerprint binds the
+ * User authenticated against the credentials of a protected request. The fingerprint binds the
  * session to that set of credentials: a document with different credentials (or changed
  * credentials) no longer accepts the session. The raw password is never serialized.
  */
@@ -34,6 +34,8 @@ final readonly class DocumentUser implements
 {
     public const string PASSWORD_HASHER = 'cors_document_auth';
 
+    public const string PASSWORD_HASHER_HASHED = 'cors_document_auth_hashed';
+
     /**
      * @param non-empty-string $identifier
      */
@@ -41,6 +43,7 @@ final readonly class DocumentUser implements
         private string $identifier,
         private ?string $password,
         private string $fingerprint,
+        private bool $passwordHashed = false,
     ) {
     }
 
@@ -66,7 +69,7 @@ final readonly class DocumentUser implements
 
     public function getPasswordHasherName(): string
     {
-        return self::PASSWORD_HASHER;
+        return $this->passwordHashed ? self::PASSWORD_HASHER_HASHED : self::PASSWORD_HASHER;
     }
 
     #[\Deprecated]
@@ -100,5 +103,6 @@ final readonly class DocumentUser implements
         $this->identifier = $data['identifier'];
         $this->password = null;
         $this->fingerprint = $data['fingerprint'];
+        $this->passwordHashed = false;
     }
 }

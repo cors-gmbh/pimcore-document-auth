@@ -16,8 +16,8 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Security;
 
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfigResolver;
 use Pimcore\Http\Request\Resolver\DocumentResolver;
-use Pimcore\Model\Document;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -38,9 +38,9 @@ use Twig\Environment;
  * not touch the Authorization header, so a basic auth in front of the application (e.g. on a
  * load balancer) keeps working.
  *
- * The mode is configured with cors_document_auth.mode and can be overridden per document with
- * the (inheritable) property "password_mode". The login form template is configured with
- * cors_document_auth.form.template and can be overridden per document with "password_template".
+ * Mode and login form template are configured with cors_document_auth.mode and
+ * cors_document_auth.form.template and can be overridden by the AuthConfig of the request (e.g. the
+ * document properties "password_mode" and "password_template").
  */
 final class DocumentAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
 {
@@ -50,14 +50,11 @@ final class DocumentAuthenticator extends AbstractAuthenticator implements Authe
 
     public const string CSRF_TOKEN_ID = 'cors_document_auth';
 
-    public const string MODE_PROPERTY = 'password_mode';
-
-    public const string TEMPLATE_PROPERTY = 'password_template';
-
     private const string FORM_MARKER = '_document_auth';
 
     public function __construct(
         private readonly UserProvider $userProvider,
+        private readonly AuthConfigResolver $configResolver,
         private readonly DocumentResolver $documentResolver,
         private readonly Environment $twig,
         private readonly ?CsrfTokenManagerInterface $csrfTokenManager,
@@ -130,10 +127,8 @@ final class DocumentAuthenticator extends AbstractAuthenticator implements Authe
         // Only show an error for a failed login attempt, not for the initial access
         $error = $this->supports($request) ? $authException : null;
 
-        $document = $this->documentResolver->getDocument($request);
-
-        $content = $this->twig->render($this->resolveTemplate($document), [
-            'document' => $document,
+        $content = $this->twig->render($this->resolveTemplate($request), [
+            'document' => $this->documentResolver->getDocument($request),
             'error' => $error,
             'last_username' => $error ? $request->request->getString('_username') : '',
             'csrf_token' => $this->isCsrfEnabled()
@@ -152,7 +147,7 @@ final class DocumentAuthenticator extends AbstractAuthenticator implements Authe
 
     private function isFormMode(Request $request): bool
     {
-        $mode = $this->documentResolver->getDocument($request)?->getProperty(self::MODE_PROPERTY);
+        $mode = $this->configResolver->resolve($request)?->mode;
 
         if (!in_array($mode, [self::MODE_BASIC, self::MODE_FORM], true)) {
             $mode = $this->defaultMode;
@@ -161,11 +156,11 @@ final class DocumentAuthenticator extends AbstractAuthenticator implements Authe
         return self::MODE_FORM === $mode;
     }
 
-    private function resolveTemplate(?Document $document): string
+    private function resolveTemplate(Request $request): string
     {
-        $template = $document?->getProperty(self::TEMPLATE_PROPERTY);
+        $template = $this->configResolver->resolve($request)?->template;
 
-        if (is_string($template) && '' !== $template && $this->twig->getLoader()->exists($template)) {
+        if (null !== $template && $this->twig->getLoader()->exists($template)) {
             return $template;
         }
 

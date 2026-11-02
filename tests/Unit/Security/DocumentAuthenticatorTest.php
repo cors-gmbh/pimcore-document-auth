@@ -16,8 +16,10 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\Tests\Unit\Security;
 
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfig;
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfigProviderInterface;
 use CORS\Bundle\DocumentAuthBundle\Security\DocumentAuthenticator;
-use CORS\Bundle\DocumentAuthBundle\Security\UserProvider;
+use CORS\Bundle\DocumentAuthBundle\Security\DocumentUser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Pimcore\Model\Document\Page;
 use Symfony\Component\HttpFoundation\Request;
@@ -216,13 +218,46 @@ final class DocumentAuthenticatorTest extends DocumentTestCase
         self::assertNull($response);
     }
 
+    public function testModeAndTemplateComeFromCustomProvider(): void
+    {
+        $provider = $this->createFixedProvider(new AuthConfig('site', 'secret', mode: 'form', template: 'customer.html.twig'));
+
+        $response = $this->createAuthenticator(null, DocumentAuthenticator::MODE_BASIC, providers: [$provider])
+            ->start(Request::create('/site'))
+        ;
+
+        self::assertFalse($response->headers->has('WWW-Authenticate'));
+        self::assertStringStartsWith('customer.html.twig|', (string) $response->getContent());
+    }
+
+    public function testCustomProviderPassportLoadsUserOfProvider(): void
+    {
+        $hash = password_hash('secret', \PASSWORD_BCRYPT);
+        $provider = $this->createFixedProvider(new AuthConfig('site', $hash, true));
+        $request = $this->createBasicAuthRequest('site', 'secret');
+
+        $passport = $this->createAuthenticator(null, DocumentAuthenticator::MODE_BASIC, providers: [$provider], request: $request)
+            ->authenticate($request)
+        ;
+
+        $user = $passport->getUser();
+        self::assertInstanceOf(DocumentUser::class, $user);
+        self::assertSame(DocumentUser::PASSWORD_HASHER_HASHED, $user->getPasswordHasherName());
+    }
+
+    /**
+     * @param list<AuthConfigProviderInterface> $providers
+     */
     private function createAuthenticator(
         ?Page $document,
         string $mode,
         bool $csrfProtection = true,
         bool $withCsrfManager = true,
+        array $providers = [],
+        ?Request $request = null,
     ): DocumentAuthenticator {
         $resolver = $this->createResolver($document);
+        $configResolver = $this->createConfigResolver($document, ...$providers);
 
         $csrfManager = null;
         if ($withCsrfManager) {
@@ -236,7 +271,8 @@ final class DocumentAuthenticatorTest extends DocumentTestCase
         ]));
 
         return new DocumentAuthenticator(
-            new UserProvider($resolver, 'kernel-secret'),
+            $this->createUserProvider($configResolver, $request),
+            $configResolver,
             $resolver,
             $twig,
             $csrfManager,

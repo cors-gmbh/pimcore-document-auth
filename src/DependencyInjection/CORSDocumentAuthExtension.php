@@ -16,8 +16,11 @@ declare(strict_types=1);
 
 namespace CORS\Bundle\DocumentAuthBundle\DependencyInjection;
 
+use CORS\Bundle\DocumentAuthBundle\Config\AuthConfigProviderInterface;
+use CORS\Bundle\DocumentAuthBundle\Config\DocumentPropertyAuthConfigProvider;
 use CORS\Bundle\DocumentAuthBundle\Security\DocumentAuthenticator;
 use CORS\Bundle\DocumentAuthBundle\Security\DocumentUser;
+use CORS\Bundle\DocumentAuthBundle\Security\PasswordHashVerifier;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -26,17 +29,17 @@ use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 final class CORSDocumentAuthExtension extends Extension implements PrependExtensionInterface
 {
-    /**
-     * Predefined document properties, so editors can pick them in the properties tab.
-     */
     // Pimcore Studio requires creation and modification date for every predefined property
     private const int PREDEFINED_PROPERTIES_DATE = 1790467200;
 
+    /**
+     * Predefined document properties, so editors can pick them in the properties tab.
+     */
     public const array PREDEFINED_PROPERTIES = [
         'cors_document_auth_enabled' => [
             'name' => 'Document Auth: enabled',
             'description' => 'Protects the document (and its children) with username and password',
-            'key' => 'password_enabled',
+            'key' => DocumentPropertyAuthConfigProvider::ENABLED_PROPERTY,
             'type' => 'bool',
             'data' => '1',
             'ctype' => 'document',
@@ -45,7 +48,7 @@ final class CORSDocumentAuthExtension extends Extension implements PrependExtens
         'cors_document_auth_username' => [
             'name' => 'Document Auth: username',
             'description' => 'Username for the protected document',
-            'key' => 'password_username',
+            'key' => DocumentPropertyAuthConfigProvider::USERNAME_PROPERTY,
             'type' => 'text',
             'ctype' => 'document',
             'inheritable' => true,
@@ -53,7 +56,7 @@ final class CORSDocumentAuthExtension extends Extension implements PrependExtens
         'cors_document_auth_password' => [
             'name' => 'Document Auth: password',
             'description' => 'Password for the protected document (raw text)',
-            'key' => 'password_password',
+            'key' => DocumentPropertyAuthConfigProvider::PASSWORD_PROPERTY,
             'type' => 'text',
             'ctype' => 'document',
             'inheritable' => true,
@@ -61,7 +64,7 @@ final class CORSDocumentAuthExtension extends Extension implements PrependExtens
         'cors_document_auth_mode' => [
             'name' => 'Document Auth: login mode',
             'description' => 'basic = browser login dialog, form = login page; empty uses the configured default',
-            'key' => DocumentAuthenticator::MODE_PROPERTY,
+            'key' => DocumentPropertyAuthConfigProvider::MODE_PROPERTY,
             'type' => 'select',
             'config' => DocumentAuthenticator::MODE_BASIC . ',' . DocumentAuthenticator::MODE_FORM,
             'ctype' => 'document',
@@ -70,7 +73,7 @@ final class CORSDocumentAuthExtension extends Extension implements PrependExtens
         'cors_document_auth_template' => [
             'name' => 'Document Auth: login template',
             'description' => 'Twig template of the login page (mode form), e.g. document-auth/customer.html.twig',
-            'key' => DocumentAuthenticator::TEMPLATE_PROPERTY,
+            'key' => DocumentPropertyAuthConfigProvider::TEMPLATE_PROPERTY,
             'type' => 'text',
             'ctype' => 'document',
             'inheritable' => true,
@@ -89,16 +92,21 @@ final class CORSDocumentAuthExtension extends Extension implements PrependExtens
         $container->setParameter('cors_document_auth.form.template', $config['form']['template']);
         $container->setParameter('cors_document_auth.form.csrf_protection', $config['form']['csrf_protection']);
 
+        $container->registerForAutoconfiguration(AuthConfigProviderInterface::class)
+            ->addTag(AuthConfigProviderInterface::TAG)
+        ;
+
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
     }
 
     public function prepend(ContainerBuilder $container): void
     {
-        // Document passwords are stored as raw text in the document properties
+        // Raw passwords (document properties) and password_hash() hashes (e.g. Pimcore password fields)
         $container->prependExtensionConfig('security', [
             'password_hashers' => [
                 DocumentUser::PASSWORD_HASHER => ['algorithm' => 'plaintext'],
+                DocumentUser::PASSWORD_HASHER_HASHED => ['id' => PasswordHashVerifier::class],
             ],
         ]);
 

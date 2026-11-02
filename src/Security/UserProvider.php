@@ -17,7 +17,7 @@ declare(strict_types=1);
 namespace CORS\Bundle\DocumentAuthBundle\Security;
 
 use Pimcore\Http\Request\Resolver\DocumentResolver;
-use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\AuthenticationServiceException;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
@@ -27,17 +27,18 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 /**
- * @implements UserProviderInterface<InMemoryUser>
+ * @implements UserProviderInterface<DocumentUser|InMemoryUser>
  */
 final readonly class UserProvider implements UserProviderInterface
 {
     public function __construct(
         private DocumentResolver $documentResolver,
-        private PasswordHasherFactoryInterface $passwordHasherFactory,
+        #[\SensitiveParameter]
+        private string $secret,
     ) {
     }
 
-    public function loadUserByIdentifier(string $identifier): UserInterface
+    public function loadUserByIdentifier(string $identifier): DocumentUser
     {
         $document = $this->documentResolver->getDocument();
 
@@ -64,25 +65,51 @@ final readonly class UserProvider implements UserProviderInterface
             throw new BadCredentialsException('Wrong Username');
         }
 
-        $user = new InMemoryUser($identifier, $rawPassword, ['ROLE_USER']);
-
-        $hasher = $this->passwordHasherFactory->getPasswordHasher($user);
-        $password = $hasher->hash($rawPassword);
-
-        return new InMemoryUser($identifier, $password, ['ROLE_USER']);
+        return new DocumentUser(
+            $configuredUsername,
+            $rawPassword,
+            hash_hmac('sha256', $configuredUsername . "\0" . $rawPassword, $this->secret),
+        );
     }
 
-    public function refreshUser(UserInterface $user): UserInterface
+    public function refreshUser(UserInterface $user): DocumentUser
     {
-        if (!$user instanceof InMemoryUser) {
+        if (!$this->supportsClass($user::class)) {
             throw new UnsupportedUserException(sprintf('Invalid user class "%s".', $user::class));
         }
 
-        return $user;
+        if (!$user instanceof DocumentUser) {
+            // Session from a version before DocumentUser existed: force a new login
+            throw $this->createUserNotFound($user, 'Legacy document auth session');
+        }
+
+        try {
+            $currentUser = $this->loadUserByIdentifier($user->getUserIdentifier());
+        } catch (AuthenticationException $exception) {
+            throw $this->createUserNotFound($user, 'Document credentials not valid anymore', $exception);
+        }
+
+        // The session belongs to a document with other (or changed) credentials
+        if (!$user->isEqualTo($currentUser)) {
+            throw $this->createUserNotFound($user, 'Document credentials do not match the session');
+        }
+
+        return $currentUser;
     }
 
     public function supportsClass(string $class): bool
     {
-        return InMemoryUser::class === $class;
+        return DocumentUser::class === $class || InMemoryUser::class === $class;
+    }
+
+    private function createUserNotFound(
+        UserInterface $user,
+        string $message,
+        ?\Throwable $previous = null,
+    ): UserNotFoundException {
+        $exception = new UserNotFoundException($message, 0, $previous);
+        $exception->setUserIdentifier($user->getUserIdentifier());
+
+        return $exception;
     }
 }

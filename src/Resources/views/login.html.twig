@@ -1,0 +1,91 @@
+{#
+    Login form of the document auth (mode "form").
+
+    Customize it by extending this template and overriding single blocks, e.g. only the colors:
+
+        {% extends '@CORSDocumentAuth/login.html.twig' %}
+        {% block theme %}
+            :root { --document-auth-primary: #e30613; --document-auth-font: "Inter", sans-serif; }
+        {% endblock %}
+
+    Use the template globally with cors_document_auth.form.template, per document (inherited)
+    with the property "password_template", or override this file in
+    templates/bundles/CORSDocumentAuthBundle/login.html.twig.
+
+    Variables: document, error, last_username, csrf_token, form_marker, action
+#}
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>{% block title %}{{ 'cors_document_auth.title'|trans({}, 'cors_document_auth') }}{% endblock %}</title>
+    {% block stylesheets %}
+        <style>
+            :root {
+                --document-auth-primary: #1f2328;
+                --document-auth-primary-text: #fff;
+                --document-auth-background: #f4f5f7;
+                --document-auth-surface: #fff;
+                --document-auth-text: #1f2328;
+                --document-auth-border: #c9ced6;
+                --document-auth-error-background: #fdecec;
+                --document-auth-error-text: #a4161a;
+                --document-auth-radius: 8px;
+                --document-auth-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            }
+            {% block theme %}{% endblock %}
+            * { box-sizing: border-box; }
+            body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; font-family: var(--document-auth-font); background: var(--document-auth-background); color: var(--document-auth-text); }
+            .document-auth { width: 100%; max-width: 360px; padding: 32px; background: var(--document-auth-surface); border-radius: var(--document-auth-radius); box-shadow: 0 1px 3px rgba(0, 0, 0, .12); }
+            .document-auth__logo { display: block; max-width: 160px; max-height: 64px; margin-bottom: 24px; }
+            .document-auth__title { margin: 0 0 24px; font-size: 1.25rem; }
+            .document-auth__label { display: block; margin-bottom: 4px; font-size: .875rem; font-weight: 600; }
+            .document-auth__input { width: 100%; margin-bottom: 16px; padding: 10px 12px; border: 1px solid var(--document-auth-border); border-radius: calc(var(--document-auth-radius) - 2px); font: inherit; }
+            .document-auth__submit { width: 100%; padding: 10px 12px; border: 0; border-radius: calc(var(--document-auth-radius) - 2px); background: var(--document-auth-primary); color: var(--document-auth-primary-text); font: inherit; font-weight: 600; cursor: pointer; }
+            .document-auth__error { margin-bottom: 16px; padding: 10px 12px; border-radius: calc(var(--document-auth-radius) - 2px); background: var(--document-auth-error-background); color: var(--document-auth-error-text); font-size: .875rem; }
+        </style>
+    {% endblock %}
+    {% block head %}{% endblock %}
+</head>
+<body{% block body_attributes %}{% endblock %}>
+    {% block body %}
+        <form class="document-auth" method="post" action="{{ action }}">
+            {% block logo %}{% endblock %}
+
+            {% block heading %}
+                <h1 class="document-auth__title">{{ 'cors_document_auth.title'|trans({}, 'cors_document_auth') }}</h1>
+            {% endblock %}
+
+            {% block error %}
+                {% if error %}
+                    <div class="document-auth__error" role="alert">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
+                {% endif %}
+            {% endblock %}
+
+            {% block fields %}
+                <label class="document-auth__label" for="document-auth-username">{{ 'cors_document_auth.username'|trans({}, 'cors_document_auth') }}</label>
+                <input class="document-auth__input" type="text" id="document-auth-username" name="_username" value="{{ last_username }}" autocomplete="username" required autofocus>
+
+                <label class="document-auth__label" for="document-auth-password">{{ 'cors_document_auth.password'|trans({}, 'cors_document_auth') }}</label>
+                <input class="document-auth__input" type="password" id="document-auth-password" name="_password" autocomplete="current-password" required>
+            {% endblock %}
+
+            {# Required for the login, a custom body block must render it with {{ block('hidden_fields') }} #}
+            {% block hidden_fields %}
+                <input type="hidden" name="{{ form_marker }}" value="1">
+                {% if csrf_token %}
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                {% endif %}
+            {% endblock %}
+
+            {% block submit %}
+                <button class="document-auth__submit" type="submit">{{ 'cors_document_auth.submit'|trans({}, 'cors_document_auth') }}</button>
+            {% endblock %}
+
+            {% block footer %}{% endblock %}
+        </form>
+    {% endblock %}
+</body>
+</html>

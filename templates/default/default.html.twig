@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <title>{{ document.title ?: document.key }}</title>
+</head>
+<body>
+    <h1>{{ document.fullPath }}</h1>
+    {% if app.user %}
+        <p>Eingeloggt als <strong>{{ app.user.userIdentifier }}</strong></p>
+    {% else %}
+        <p>Nicht geschützt</p>
+    {% endif %}
+    <ul>
+        {% for child in pimcore_document(1).children %}
+            <li><a href="{{ child.fullPath }}">{{ child.fullPath }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
